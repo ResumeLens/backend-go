@@ -22,7 +22,13 @@ jobs:
       run: |
         go build -o app ./cmd/main.go
         ./app &
-        sleep 2 # Wait for server to start
-
+    - name: Wait for server to be ready
+      run: |
+        for i in {1..20}; do
+          nc -z localhost 8080 && echo "Server is up!" && exit 0
+          echo "Waiting for server..."
+          sleep 1
+        done
+        echo "Server did not start in time" && exit 1
     - name: Run tests
       run: go test ./... 
