@@ -14,19 +14,21 @@ func init() {
 }
 
 type JWTClaim struct {
-	UserID string `json:"user_id"`
-	Email  string `json:"email"`
-	Role   string `json:"role"`
+	UserID         string `json:"user_id"`
+	Email          string `json:"email"`
+	Role           string `json:"role"`
+	OrganizationID string `json:"organization_id"`
 	jwt.RegisteredClaims
 }
 
 // GenerateJWT creates a new JWT token
-func GenerateJWT(userID, email, role string) (string, error) {
+func GenerateJWT(userID, email, role, organizationID string) (string, error) {
 	expiryMinutes := viper.GetInt("JWT_EXPIRY")
 	claims := &JWTClaim{
-		UserID: userID,
-		Email:  email,
-		Role:   role,
+		UserID:         userID,
+		Email:          email,
+		Role:           role,
+		OrganizationID: organizationID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * time.Duration(expiryMinutes))),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
