@@ -31,3 +31,5 @@ config.env
 # Editor/IDE
 # .idea/
 # .vscode/
+
+credentials.json
