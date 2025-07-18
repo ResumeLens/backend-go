@@ -11,24 +11,25 @@ type User struct {
 	Email          string `gorm:"unique;not null"`
 	PasswordHash   string `gorm:"not null"`
 	Role           string `gorm:"not null"`
-	OrganizationID string
+	OrganizationID string `gorm:"not null"`
 	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	UpdatedAt      time.Time `gorm:"autoUpdateTime"`
 }
 
 type Organization struct {
-	ID        string `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	Name      string `gorm:"unique;not null"`
-	CreatedBy string
-	CreatedAt time.Time
+	ID          string  `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
+	Name        string  `gorm:"unique;not null"`
+	CreatedByID *string `gorm:"type:uuid;column:created_by"`
+	CreatedAt   time.Time
 }
 
 type Invite struct {
-	ID             string `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	Email          string `gorm:"not null"`
-	OrganizationID string `gorm:"not null"`
-	Role           string `gorm:"not null"`
-	Token          string `gorm:"unique;not null"`
+	ID             string  `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
+	UserID         *string `gorm:"type:uuid"`
+	Email          string  `gorm:"not null"`
+	OrganizationID string  `gorm:"not null"`
+	Role           string  `gorm:"not null"`
+	Token          string  `gorm:"unique;not null"`
 	Expiry         time.Time
 	IsAccepted     bool
 	CreatedAt      time.Time
@@ -36,14 +37,14 @@ type Invite struct {
 
 type Candidate struct {
 	ID        string `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
+	UserID    string `gorm:"not null;type:uuid"`
 	FullName  string `gorm:"not null"`
-	Email     string `gorm:"not null"`
-	Password  string `gorm:""`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
 
-type CandidateApplication struct {
+type JobApplication struct {
+	ID             string `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	CandidateID    string `gorm:"primaryKey;type:uuid"`
 	OrganizationID string `gorm:"primaryKey;type:uuid"`
 	JobID          string `gorm:"primaryKey;type:uuid"`

@@ -45,10 +45,8 @@ func SignupHandler(c *gin.Context) {
 
 	org = models.Organization{
 		Name:      req.OrganizationName,
-		CreatedBy: req.Email,
 		CreatedAt: time.Now(),
 	}
-
 	if err := db.DB.Create(&org).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create organization"})
 		return
@@ -61,7 +59,6 @@ func SignupHandler(c *gin.Context) {
 		return
 	}
 
-	// Create User (Admin by default)
 	user := models.User{
 		Email:          req.Email,
 		PasswordHash:   hashedPassword,
@@ -74,12 +71,13 @@ func SignupHandler(c *gin.Context) {
 		return
 	}
 
+	db.DB.Model(&org).Update("CreatedByID", user.ID)
+
 	c.JSON(http.StatusCreated, gin.H{
 		"message":         "Signup successful",
 		"user_id":         user.ID,
 		"organization_id": org.ID,
 	})
-
 }
 
 // LoginRequest represents incoming login data
@@ -264,8 +262,11 @@ func AcceptInviteHandler(c *gin.Context) {
 		return
 	}
 
+	// Update invite with UserID and mark as accepted
 	invite.IsAccepted = true
+	invite.UserID = &user.ID
 	db.DB.Save(&invite)
+
 	c.JSON(http.StatusCreated, gin.H{
 		"message":         "Account created successfully via invite",
 		"user_id":         user.ID,
