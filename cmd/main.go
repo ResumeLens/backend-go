@@ -6,6 +6,7 @@ import (
 	"github.com/resumelens/authservice/internal/config"
 	"github.com/resumelens/authservice/internal/db"
 	"github.com/resumelens/authservice/internal/routes"
+	// "./internal/routes"
 	"github.com/spf13/viper"
 )
 
@@ -20,7 +21,7 @@ func main() {
 
 	port := viper.GetString("PORT")
 	if port == "" {
-		port = "8080"
+		port = "8000"
 	}
 
 	log.Printf("Server running on port %s", port)
