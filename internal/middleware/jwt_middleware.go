@@ -8,7 +8,6 @@ import (
 	"github.com/resumelens/authservice/internal/utils"
 )
 
-// JWTAuthMiddleware validates JWT token in the Authorization header
 func JWTAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -33,7 +32,6 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Store claims in context for further use
 		c.Set("userID", claims.UserID)
 		c.Set("email", claims.Email)
 		c.Set("role", claims.Role)

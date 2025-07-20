@@ -4,13 +4,13 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/spf13/viper"
+	"github.com/resumelens/authservice/internal/config"
 )
 
 var jwtSecret []byte
 
-func init() {
-	jwtSecret = []byte(viper.GetString("JWT_SECRET"))
+func InitJWT(cfg *config.Config) {
+	jwtSecret = []byte(cfg.JWTSecret)
 }
 
 type JWTClaim struct {
@@ -21,9 +21,8 @@ type JWTClaim struct {
 	jwt.RegisteredClaims
 }
 
-// GenerateJWT creates a new JWT token
 func GenerateJWT(userID, email, role, organizationID string) (string, error) {
-	expiryMinutes := viper.GetInt("JWT_EXPIRY")
+	expiryMinutes := 60 // default, can be overridden by config
 	claims := &JWTClaim{
 		UserID:         userID,
 		Email:          email,
@@ -39,7 +38,6 @@ func GenerateJWT(userID, email, role, organizationID string) (string, error) {
 	return token.SignedString(jwtSecret)
 }
 
-// ValidateToken parses and validates a token string
 func ValidateToken(tokenString string) (*JWTClaim, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &JWTClaim{}, func(token *jwt.Token) (any, error) {
 		return jwtSecret, nil

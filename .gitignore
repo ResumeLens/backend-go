@@ -24,12 +24,29 @@ profile.cov
 go.work
 go.work.sum
 
-# env file
+# Environment and config files
 .env
 config.env
+*.env
+
+# Google Cloud credentials
+credentials.json
+*-service-account*.json
+service-account*.json
+gcp-credentials*.json
+
+# Test files
+test_gcs
 
 # Editor/IDE
 # .idea/
 # .vscode/
 
-credentials.json
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

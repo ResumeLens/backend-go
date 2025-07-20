@@ -8,38 +8,33 @@ import (
 	"github.com/resumelens/authservice/internal/gcs"
 	"github.com/resumelens/authservice/internal/handler"
 	"github.com/resumelens/authservice/internal/routes"
-	uploader "github.com/resumelens/authservice/resume-uploader"
+	"github.com/resumelens/authservice/internal/services"
+	"github.com/resumelens/authservice/internal/utils"
 )
 
 func main() {
-	// 1. Load Configuration
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("Config error: %s", err)
 	}
 
-	// 2. Initialize Dependencies
-	db.ConnectDatabase()
-	gcs.InitClient()
+	db.ConnectDatabase(cfg)
+	utils.InitJWT(cfg)
+	gcs.InitClient(cfg.GoogleProjectID, cfg.GoogleCredentialsFile)
 
-	// 3. Initialize Services
-	resumeService := uploader.NewService(gcs.GCSClient, cfg.GCSBucketName)
+	jobApplicationService := services.NewJobApplicationService(gcs.GCSClient, cfg.GCSBucketName)
+	authService := services.NewAuthService(cfg)
 
-	// 4. Initialize Handlers
-	resumeHandler := handler.NewResumeHandler(resumeService)
+	jobApplicationHandler := handler.NewJobApplicationHandler(jobApplicationService)
+	authHandler := handler.NewAuthHandler(authService)
 
-	// 5. Setup Router
-	r := routes.SetupRouter(resumeHandler)
+	r := routes.SetupRouter(jobApplicationHandler, authHandler)
 
-	// 6. Start Server
 	port := cfg.Port
 	if port == "" {
-		port = "8080" // Just the number
+		port = "8080"
 	}
 
 	log.Printf("Server running on port %s", port)
-
-	// --- THIS IS THE FIX ---
-	// We add the colon here to create the correct address format ":8080"
 	r.Run(":" + port)
 }

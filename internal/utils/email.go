@@ -4,16 +4,15 @@ import (
 	"fmt"
 	"net/smtp"
 
-	"github.com/spf13/viper"
+	"github.com/resumelens/authservice/internal/config"
 )
 
-// SendInviteEmail sends an invite link via email
-func SendInviteEmail(recipientEmail, inviteToken string) error {
-	smtpHost := viper.GetString("SMTP_HOST")
-	smtpPort := viper.GetString("SMTP_PORT")
-	smtpUser := viper.GetString("SMTP_USER")
-	smtpPass := viper.GetString("SMTP_PASS")
-	senderName := viper.GetString("SMTP_SENDER_NAME")
+func SendInviteEmail(recipientEmail, inviteToken string, cfg *config.Config) error {
+	smtpHost := cfg.SMTPHost
+	smtpPort := cfg.SMTPPort
+	smtpUser := cfg.SMTPUser
+	smtpPass := cfg.SMTPPass
+	senderName := cfg.SMTPSenderName
 
 	from := smtpUser
 	to := []string{recipientEmail}

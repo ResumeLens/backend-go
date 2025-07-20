@@ -3,17 +3,33 @@ package gcs
 import (
 	"context"
 	"log"
+	"os"
 
 	"cloud.google.com/go/storage"
+	"google.golang.org/api/option"
 )
 
-// GCSClient holds the global client instance for Google Cloud Storage.
 var GCSClient *storage.Client
 
-// InitClient creates the connection to Google Cloud Storage.
-func InitClient() {
+func InitClient(projectID, credentialsFile string) {
 	ctx := context.Background()
-	client, err := storage.NewClient(ctx)
+
+	var opts []option.ClientOption
+
+	if credentialsFile != "" {
+		if _, err := os.Stat(credentialsFile); err == nil {
+			opts = append(opts, option.WithCredentialsFile(credentialsFile))
+			log.Printf("Using GCS credentials from file: %s", credentialsFile)
+		} else {
+			log.Printf("Warning: Credentials file not found: %s", credentialsFile)
+		}
+	}
+
+	if projectID != "" {
+		log.Printf("Using GCS project ID: %s", projectID)
+	}
+
+	client, err := storage.NewClient(ctx, opts...)
 	if err != nil {
 		log.Fatalf("Failed to create GCS client: %v", err)
 	}
