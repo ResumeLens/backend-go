@@ -32,8 +32,7 @@ func SetupRouter(resumeHandler *handler.ResumeHandler) *gin.Engine {
 			secured.POST("/upload-cover-letter", resumeHandler.UploadCoverLetter)
 
 			// --- ADD THIS NEW LINE ---
-			// This creates the new route for the metadata.
-			secured.POST("/upload-metadata", resumeHandler.UploadMetadata)
+
 		}
 	}
 

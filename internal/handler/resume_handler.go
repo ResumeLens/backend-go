@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"bytes"
-	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -76,37 +74,3 @@ func (h *ResumeHandler) UploadCoverLetter(c *gin.Context) {
 
 // --- NEW HANDLER for Metadata ---
 // UploadMetadata handles the metadata JSON upload.
-func (h *ResumeHandler) UploadMetadata(c *gin.Context) {
-	// For metadata, we expect a raw JSON body, not a file upload.
-	var requestBody map[string]interface{}
-
-	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
-		return
-	}
-
-	// Extract IDs from the JSON body
-	orgID, _ := requestBody["organization_id"].(string)
-	jobID, _ := requestBody["job_id"].(string)
-	candidateID, _ := requestBody["candidate_id"].(string)
-
-	if orgID == "" || jobID == "" || candidateID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "organization_id, job_id, and candidate_id are required in JSON body"})
-		return
-	}
-
-	// Convert the whole JSON body back to bytes to be uploaded
-	jsonData, err := json.Marshal(requestBody)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process JSON data"})
-		return
-	}
-
-	// We call the new service method with an io.Reader
-	if err := h.service.UploadMetadata(c.Request.Context(), bytes.NewReader(jsonData), orgID, jobID, candidateID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store metadata"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Metadata stored successfully."})
-}
