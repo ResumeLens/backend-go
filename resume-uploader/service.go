@@ -26,12 +26,23 @@ func NewService(gcsClient *storage.Client, bucketName string) *Service {
 	}
 }
 
-// UploadFile manages the core logic for uploading a file or processing a ZIP.
-func (s *Service) UploadFile(ctx context.Context, file multipart.File, handler *multipart.FileHeader) error {
+// --- MODIFIED FUNCTION SIGNATURE ---
+// UploadFile now accepts orgID, jobID, and candidateID.
+func (s *Service) UploadFile(ctx context.Context, file multipart.File, handler *multipart.FileHeader, orgID, jobID, candidateID string) error {
+	// For now, we assume single file uploads for path creation.
+	// ZIP file processing logic will need to be adapted if candidates in a zip belong to different jobs.
 	if filepath.Ext(handler.Filename) == ".zip" {
-		return s.processZip(ctx, file, handler)
+		// We pass the IDs to the zip processor.
+		return s.processZip(ctx, file, handler, orgID, jobID, candidateID)
 	}
-	return s.uploadToGCS(ctx, handler.Filename, file)
+
+	// --- NEW GCS PATH LOGIC ---
+	// Get the file extension (e.g., ".pdf").
+	ext := filepath.Ext(handler.Filename)
+	// Construct the object path according to the plan.
+	objectName := fmt.Sprintf("organization-%s/job-%s/candidate-%s/resume%s", orgID, jobID, candidateID, ext)
+
+	return s.uploadToGCS(ctx, objectName, file)
 }
 
 func (s *Service) uploadToGCS(ctx context.Context, objectName string, reader io.Reader) error {
@@ -47,7 +58,10 @@ func (s *Service) uploadToGCS(ctx context.Context, objectName string, reader io.
 	return nil
 }
 
-func (s *Service) processZip(ctx context.Context, zipFile multipart.File, zipHandler *multipart.FileHeader) error {
+// processZip is also updated to accept the IDs.
+func (s *Service) processZip(ctx context.Context, zipFile multipart.File, zipHandler *multipart.FileHeader, orgID, jobID, candidateID string) error {
+	// This is a simplified implementation. A real-world scenario might need to handle
+	// multiple candidates within a single zip, each with their own ID.
 	reader, err := zip.NewReader(zipFile, zipHandler.Size)
 	if err != nil {
 		return fmt.Errorf("could not read zip file: %w", err)
@@ -62,7 +76,12 @@ func (s *Service) processZip(ctx context.Context, zipFile multipart.File, zipHan
 			continue
 		}
 		defer zippedFile.Close()
-		if err := s.uploadToGCS(ctx, file.Name, zippedFile); err != nil {
+
+		// --- NEW GCS PATH LOGIC FOR ZIPPED FILES ---
+		// We use a placeholder for candidateID from the filename, but use the provided org/job IDs.
+		// A more robust solution would parse candidate info from the filename or an associated manifest.
+		objectName := fmt.Sprintf("organization-%s/job-%s/candidate-%s/resume%s", orgID, jobID, file.Name, filepath.Ext(file.Name))
+		if err := s.uploadToGCS(ctx, objectName, zippedFile); err != nil {
 			log.Printf("Failed to upload %s from zip: %v", file.Name, err)
 		}
 	}
