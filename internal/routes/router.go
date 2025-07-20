@@ -6,7 +6,6 @@ import (
 	"github.com/resumelens/authservice/internal/middleware"
 )
 
-// --- MODIFY THIS LINE ---
 // The function now accepts 'resumeHandler' as a parameter.
 func SetupRouter(resumeHandler *handler.ResumeHandler) *gin.Engine {
 	router := gin.Default()
@@ -27,12 +26,14 @@ func SetupRouter(resumeHandler *handler.ResumeHandler) *gin.Engine {
 		secured := api.Group("/")
 		secured.Use(middleware.JWTAuthMiddleware())
 		{
-			// Your existing secured route
+			// Your existing secured routes
 			secured.POST("/invite", InviteHandler)
-			
-			// This line, which caused the error, is now valid
-			// because resumeHandler is a known parameter.
 			secured.POST("/upload-resume", resumeHandler.Upload)
+			secured.POST("/upload-cover-letter", resumeHandler.UploadCoverLetter)
+
+			// --- ADD THIS NEW LINE ---
+			// This creates the new route for the metadata.
+			secured.POST("/upload-metadata", resumeHandler.UploadMetadata)
 		}
 	}
 

@@ -26,25 +26,42 @@ func NewService(gcsClient *storage.Client, bucketName string) *Service {
 	}
 }
 
-// --- MODIFIED FUNCTION SIGNATURE ---
-// UploadFile now accepts orgID, jobID, and candidateID.
+// UploadFile handles uploading the main resume file.
 func (s *Service) UploadFile(ctx context.Context, file multipart.File, handler *multipart.FileHeader, orgID, jobID, candidateID string) error {
-	// For now, we assume single file uploads for path creation.
-	// ZIP file processing logic will need to be adapted if candidates in a zip belong to different jobs.
 	if filepath.Ext(handler.Filename) == ".zip" {
-		// We pass the IDs to the zip processor.
 		return s.processZip(ctx, file, handler, orgID, jobID, candidateID)
 	}
 
-	// --- NEW GCS PATH LOGIC ---
-	// Get the file extension (e.g., ".pdf").
 	ext := filepath.Ext(handler.Filename)
-	// Construct the object path according to the plan.
-	objectName := fmt.Sprintf("organization-%s/job-%s/candidate-%s/resume%s", orgID, jobID, candidateID, ext)
+	objectName := fmt.Sprintf("org-%s/job-%s/candidate-%s/resume%s", orgID, jobID, candidateID, ext)
 
 	return s.uploadToGCS(ctx, objectName, file)
 }
 
+// --- NEW FUNCTION for Cover Letter ---
+// UploadCoverLetter handles uploading a cover letter.
+func (s *Service) UploadCoverLetter(ctx context.Context, file multipart.File, handler *multipart.FileHeader, orgID, jobID, candidateID string) error {
+	// We don't support zip for cover letters to keep it simple.
+	if filepath.Ext(handler.Filename) == ".zip" {
+		return fmt.Errorf("zip files are not supported for cover letters")
+	}
+
+	ext := filepath.Ext(handler.Filename)
+	// The object name is now hardcoded to 'cover_letter'.
+	objectName := fmt.Sprintf("org-%s/job-%s/candidate-%s/cover_letter%s", orgID, jobID, candidateID, ext)
+
+	return s.uploadToGCS(ctx, objectName, file)
+}
+
+// --- NEW FUNCTION for Metadata ---
+// UploadMetadata handles uploading a metadata JSON file.
+func (s *Service) UploadMetadata(ctx context.Context, jsonData io.Reader, orgID, jobID, candidateID string) error {
+	// The object name is hardcoded to 'metadata.json'.
+	objectName := fmt.Sprintf("org-%s/job-%s/candidate-%s/metadata.json", orgID, jobID, candidateID)
+	return s.uploadToGCS(ctx, objectName, jsonData)
+}
+
+// uploadToGCS is a private helper function for GCS uploads.
 func (s *Service) uploadToGCS(ctx context.Context, objectName string, reader io.Reader) error {
 	obj := s.gcsClient.Bucket(s.bucketName).Object(objectName)
 	wc := obj.NewWriter(ctx)
@@ -58,10 +75,8 @@ func (s *Service) uploadToGCS(ctx context.Context, objectName string, reader io.
 	return nil
 }
 
-// processZip is also updated to accept the IDs.
+// processZip handles zip files for resumes.
 func (s *Service) processZip(ctx context.Context, zipFile multipart.File, zipHandler *multipart.FileHeader, orgID, jobID, candidateID string) error {
-	// This is a simplified implementation. A real-world scenario might need to handle
-	// multiple candidates within a single zip, each with their own ID.
 	reader, err := zip.NewReader(zipFile, zipHandler.Size)
 	if err != nil {
 		return fmt.Errorf("could not read zip file: %w", err)
@@ -77,10 +92,7 @@ func (s *Service) processZip(ctx context.Context, zipFile multipart.File, zipHan
 		}
 		defer zippedFile.Close()
 
-		// --- NEW GCS PATH LOGIC FOR ZIPPED FILES ---
-		// We use a placeholder for candidateID from the filename, but use the provided org/job IDs.
-		// A more robust solution would parse candidate info from the filename or an associated manifest.
-		objectName := fmt.Sprintf("organization-%s/job-%s/candidate-%s/resume%s", orgID, jobID, file.Name, filepath.Ext(file.Name))
+		objectName := fmt.Sprintf("org-%s/job-%s/candidate-%s/resume%s", orgID, jobID, file.Name, filepath.Ext(file.Name))
 		if err := s.uploadToGCS(ctx, objectName, zippedFile); err != nil {
 			log.Printf("Failed to upload %s from zip: %v", file.Name, err)
 		}
