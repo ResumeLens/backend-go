@@ -31,6 +31,21 @@ func (s *AuthService) Signup(req SignupRequest) (gin.H, int) {
 		return gin.H{"error": "Email already registered"}, http.StatusConflict
 	}
 
+	hashedPassword, err := utils.HashPassword(req.Password)
+	if err != nil {
+		return gin.H{"error": "Failed to hash password"}, http.StatusInternalServerError
+	}
+
+	user := models.User{
+		Email:        req.Email,
+		PasswordHash: hashedPassword,
+		Role:         "admin",
+		CreatedAt:    time.Now(),
+	}
+	if err := db.DB.Create(&user).Error; err != nil {
+		return gin.H{"error": "Failed to create user"}, http.StatusInternalServerError
+	}
+
 	var org models.Organization
 	if err := db.DB.Where("name = ?", req.OrganizationName).First(&org).Error; err == nil {
 		return gin.H{"error": "Organization already exists. Please contact your admin or use an invite."}, http.StatusConflict
@@ -39,29 +54,17 @@ func (s *AuthService) Signup(req SignupRequest) (gin.H, int) {
 	}
 
 	org = models.Organization{
-		Name:      req.OrganizationName,
-		CreatedBy: req.Email,
-		CreatedAt: time.Now(),
+		Name:        req.OrganizationName,
+		CreatedByID: &user.ID,
+		CreatedAt:   time.Now(),
 	}
 
 	if err := db.DB.Create(&org).Error; err != nil {
 		return gin.H{"error": "Failed to create organization"}, http.StatusInternalServerError
 	}
 
-	hashedPassword, err := utils.HashPassword(req.Password)
-	if err != nil {
-		return gin.H{"error": "Failed to hash password"}, http.StatusInternalServerError
-	}
-
-	user := models.User{
-		Email:          req.Email,
-		PasswordHash:   hashedPassword,
-		Role:           "admin",
-		OrganizationID: org.ID,
-		CreatedAt:      time.Now(),
-	}
-	if err := db.DB.Create(&user).Error; err != nil {
-		return gin.H{"error": "Failed to create user"}, http.StatusInternalServerError
+	if err := db.DB.Model(&user).Update("organization_id", org.ID).Error; err != nil {
+		return gin.H{"error": "Failed to update user with organization"}, http.StatusInternalServerError
 	}
 
 	return gin.H{
