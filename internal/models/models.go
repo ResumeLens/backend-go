@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/pgvector/pgvector-go"
+	"github.com/lib/pq"
 )
 
 type User struct {
@@ -36,24 +36,64 @@ type Invite struct {
 }
 
 type Candidate struct {
-	ID        string `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	UserID    string `gorm:"not null;type:uuid"`
-	FullName  string `gorm:"not null"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID         string `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
+	UserID     string `gorm:"not null;type:uuid"`
+	FullName   string `gorm:"not null"`
+	Email      string `gorm:"not null"`
+	Phone      string `gorm:"not null"`
+	LinkedIn   string `gorm:"type:text"`
+	GitHub     string `gorm:"type:text"`
+	Location   string `gorm:"type:text"`
+	Experience string `gorm:"type:text"`
+	Education  string `gorm:"type:text"`
+	Skills     string `gorm:"not null"`
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 type JobApplication struct {
-	ID             string `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	CandidateID    string `gorm:"primaryKey;type:uuid"`
-	OrganizationID string `gorm:"primaryKey;type:uuid"`
-	JobID          string `gorm:"primaryKey;type:uuid"`
+	ID          string `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
+	CandidateID string `gorm:"type:uuid"`
+	JobID       string `gorm:"type:uuid"`
 
-	ResumeGCSPath string          `gorm:"not null"`
-	ParsedResume  string          `gorm:"type:jsonb"`
-	Embedding     pgvector.Vector `gorm:"type:vector(384)"` // all-MiniLM-L6-v2 -- 384 dimensions
-	Status        string          `gorm:"not null;default:'pending'"`
+	ResumeGCSPath      string  `gorm:"not null"`
+	CoverLetterGCSPath string  `gorm:"type:text"`
+	ParsedResume       string  `gorm:"type:jsonb"`
+	PinecodeID         string  `gorm:"type:text"` // pinecone id for embedding retrieval
+	Status             string  `gorm:"not null;default:'pending'"`
+	AI_Score           float64 `gorm:"not null;default:0"`
+	MagicLinkToken     string  `gorm:"unique;not null"`
 
 	CreatedAt time.Time
-	UpdatedAt time.Time
+}
+
+type Job struct {
+	ID             string `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
+	OrganizationID string `gorm:"type:uuid;not null"`
+
+	Title           string         `gorm:"not null"`
+	Description     string         `gorm:"not null;type:text"`
+	Location        pq.StringArray `gorm:"type:text[]"`
+	ExperienceLevel string         `gorm:"type:text"`
+	SkillsRequired  pq.StringArray `gorm:"type:text[]"`
+	EmploymentType  pq.StringArray `gorm:"type:text[]"`
+	SalaryRange     pq.StringArray `gorm:"type:text[]"`
+	IsActive        bool           `gorm:"not null;default:true"`
+
+	CreatedByID      string `gorm:"type:uuid;not null"`
+	ApplicationCount int    `gorm:"default:0"`
+
+	PublicLink string `gorm:"unique;not null"` // neuralhire.com/job/{job_id}
+	ShortLink  string `gorm:"unique"`
+	CreatedAt  time.Time
+}
+
+type JobAnalytics struct {
+	ID    string `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
+	JobID string `gorm:"type:uuid"`
+
+	TotalApplications int     `gorm:"not null;default:0"`
+	TotalHires        int     `gorm:"not null;default:0"`
+	AvgFitScore       float64 `gorm:"not null;default:0"`
+	CreatedAt         time.Time
 }
