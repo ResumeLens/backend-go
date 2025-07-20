@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/resumelens/authservice/internal/config"
 	"github.com/resumelens/authservice/internal/models"
-	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
 
-func ConnectDatabase() {
-	dsn := viper.GetString("DB_URL")
+func ConnectDatabase(cfg *config.Config) {
+	dsn := cfg.DatabaseURL
 	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)

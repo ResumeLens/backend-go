@@ -3,14 +3,16 @@ package routes
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/resumelens/authservice/internal/handler"
 	"github.com/resumelens/authservice/internal/middleware"
 
 	"time"
 )
 
-func SetupRouter() *gin.Engine {
+func SetupRouter(jobApplicationHandler *handler.JobApplicationHandler, authHandler *handler.AuthHandler) *gin.Engine {
 	router := gin.Default()
 
+	router.MaxMultipartMemory = 30 << 20
 
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000"},
@@ -23,19 +25,28 @@ func SetupRouter() *gin.Engine {
 
 	api := router.Group("/api/v1")
 	{
-		api.POST("/signup", SignupHandler)
-		api.POST("/login", LoginHandler)
-		api.GET("/validate-invite", ValidateInviteHandler)
-		api.POST("/accept-invite", AcceptInviteHandler)
-		api.POST("/refresh-token", RefreshTokenHandler)
+		api.GET("/health", func(c *gin.Context) {
+			c.JSON(200, gin.H{
+				"status":  "ok",
+				"message": "Server is running",
+				"service": "Job Application Backend",
+			})
+		})
+
+		api.POST("/signup", authHandler.Signup)
+		api.POST("/login", authHandler.Login)
+		api.GET("/validate-invite", authHandler.ValidateInvite)
+		api.POST("/accept-invite", authHandler.AcceptInvite)
+		api.POST("/refresh-token", authHandler.RefreshToken)
 
 		secured := api.Group("/")
 		secured.Use(middleware.JWTAuthMiddleware())
 		{
-			secured.POST("/invite", InviteHandler)
+			secured.POST("/invite", authHandler.Invite)
+			secured.POST("/upload-resume", jobApplicationHandler.UploadResume)
+			secured.POST("/upload-cover-letter", jobApplicationHandler.UploadCoverLetter)
 		}
 	}
 
 	return router
 }
-

@@ -5,20 +5,32 @@ import (
 
 	"github.com/resumelens/authservice/internal/config"
 	"github.com/resumelens/authservice/internal/db"
+	"github.com/resumelens/authservice/internal/gcs"
+	"github.com/resumelens/authservice/internal/handler"
 	"github.com/resumelens/authservice/internal/routes"
-	"github.com/spf13/viper"
+	"github.com/resumelens/authservice/internal/services"
+	"github.com/resumelens/authservice/internal/utils"
 )
 
 func main() {
-	if err := config.LoadConfig(); err != nil {
+	cfg, err := config.LoadConfig()
+	if err != nil {
 		log.Fatalf("Config error: %s", err)
 	}
 
-	db.ConnectDatabase()
+	db.ConnectDatabase(cfg)
+	utils.InitJWT(cfg)
+	gcs.InitClient(cfg.GoogleProjectID, cfg.GoogleCredentialsFile)
 
-	r := routes.SetupRouter()
+	jobApplicationService := services.NewJobApplicationService(gcs.GCSClient, cfg.GCSBucketName)
+	authService := services.NewAuthService(cfg)
 
-	port := viper.GetString("PORT")
+	jobApplicationHandler := handler.NewJobApplicationHandler(jobApplicationService)
+	authHandler := handler.NewAuthHandler(authService)
+
+	r := routes.SetupRouter(jobApplicationHandler, authHandler)
+
+	port := cfg.Port
 	if port == "" {
 		port = "8000"
 	}
