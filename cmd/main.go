@@ -6,7 +6,6 @@ import (
 	"github.com/resumelens/authservice/internal/config"
 	"github.com/resumelens/authservice/internal/db"
 	"github.com/resumelens/authservice/internal/routes"
-	// "./internal/routes"
 	"github.com/spf13/viper"
 )
 
