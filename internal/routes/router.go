@@ -9,7 +9,11 @@ import (
 	"time"
 )
 
-func SetupRouter(jobApplicationHandler *handler.JobApplicationHandler, authHandler *handler.AuthHandler) *gin.Engine {
+func SetupRouter(
+	jobApplicationHandler *handler.JobApplicationHandler,
+	authHandler *handler.AuthHandler,
+	jobHostingHandler *handler.JobHostingHandler,
+) *gin.Engine {
 	router := gin.Default()
 
 	router.MaxMultipartMemory = 30 << 20
@@ -45,6 +49,8 @@ func SetupRouter(jobApplicationHandler *handler.JobApplicationHandler, authHandl
 			secured.POST("/invite", authHandler.Invite)
 			secured.POST("/upload-resume", jobApplicationHandler.UploadResume)
 			secured.POST("/upload-cover-letter", jobApplicationHandler.UploadCoverLetter)
+			secured.POST("/job", jobHostingHandler.CreateJob)
+			secured.GET("/job/:id", jobHostingHandler.GetJob)
 		}
 	}
 

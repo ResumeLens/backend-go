@@ -22,13 +22,18 @@ func main() {
 	utils.InitJWT(cfg)
 	gcs.InitClient(cfg.GoogleProjectID, cfg.GoogleCredentialsFile)
 
+	// Services
 	jobApplicationService := services.NewJobApplicationService(gcs.GCSClient, cfg.GCSBucketName)
 	authService := services.NewAuthService(cfg)
+	jobHostingService := services.NewJobHostingService(cfg)
 
+	// Handlers
 	jobApplicationHandler := handler.NewJobApplicationHandler(jobApplicationService)
 	authHandler := handler.NewAuthHandler(authService)
+	jobHostingHandler := handler.NewJobHostingHandler(jobHostingService)
 
-	r := routes.SetupRouter(jobApplicationHandler, authHandler)
+	// Routes
+	r := routes.SetupRouter(jobApplicationHandler, authHandler, jobHostingHandler)
 
 	port := cfg.Port
 	if port == "" {
