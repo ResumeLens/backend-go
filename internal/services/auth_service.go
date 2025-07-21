@@ -68,9 +68,9 @@ func (s *AuthService) Signup(req SignupRequest) (gin.H, int) {
 	}
 
 	return gin.H{
-		"message":         "Signup successful",
-		"user_id":         user.ID,
-		"organization_id": org.ID,
+		"message":      "Signup successful",
+		"user":         user,
+		"organization": org,
 	}, http.StatusCreated
 }
 
