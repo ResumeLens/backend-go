@@ -83,8 +83,8 @@ type Job struct {
 	CreatedByID      string `gorm:"type:uuid;not null"`
 	ApplicationCount int    `gorm:"default:0"`
 
-	PublicLink string `gorm:"unique;not null"` // neuralhire.com/job/{job_id}
-	ShortLink  string `gorm:"unique"`
+	PublicLink string `gorm:"unique;not null"` // neuralhire.com/job/{org_id}/{job_id}
+	ShortLink  string `gorm:"unique"`          // neuralhire.com/job/{job_id}
 	CreatedAt  time.Time
 }
 
