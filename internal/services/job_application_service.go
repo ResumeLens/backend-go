@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"mime/multipart"
 	"path/filepath"
@@ -79,7 +78,7 @@ func (s *JobApplicationService) updateMetadata(ctx context.Context, orgID, jobID
 
 	if err == nil {
 		defer reader.Close()
-		data, readErr := ioutil.ReadAll(reader)
+		data, readErr := io.ReadAll(reader)
 		if readErr != nil {
 			return fmt.Errorf("failed to read existing metadata: %w", readErr)
 		}
