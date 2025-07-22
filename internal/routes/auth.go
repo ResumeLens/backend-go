@@ -35,22 +35,42 @@ func SignupHandler(c *gin.Context) {
 
 	// Check if organization exists
 	var org models.Organization
+	orgExists := false
 	if err := db.DB.Where("name = ?", req.OrganizationName).First(&org).Error; err == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Organization already exists. Please contact your admin or use an invite."})
-		return
+		orgExists = true
 	} else if err.Error() != "record not found" {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error while checking organization"})
 		return
 	}
 
+	if orgExists {
+		c.JSON(http.StatusConflict, gin.H{"error": "Organization already exists. Please contact your admin or use an invite."})
+		return
+	}
+
+	// Organization does not exist, create it
 	org = models.Organization{
 		Name:      req.OrganizationName,
 		CreatedBy: req.Email,
 		CreatedAt: time.Now(),
 	}
-
 	if err := db.DB.Create(&org).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create organization"})
+		return
+	}
+
+	// Create admin role for the organization
+	adminRole := models.Role{
+		Name:                "admin",
+		OrganizationID:      org.ID,
+		CreatedAt:           time.Now(),
+		HomePermission:      true,
+		CreateJobPermission: true,
+		ViewJobPermission:   true,
+		IAMPermission:       true,
+	}
+	if err := db.DB.Create(&adminRole).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create admin role"})
 		return
 	}
 
@@ -61,11 +81,11 @@ func SignupHandler(c *gin.Context) {
 		return
 	}
 
-	// Create User (Admin by default)
+	// Create User with admin role
 	user := models.User{
 		Email:          req.Email,
 		PasswordHash:   hashedPassword,
-		Role:           "admin",
+		RoleID:         adminRole.ID,
 		OrganizationID: org.ID,
 		CreatedAt:      time.Now(),
 	}
@@ -78,8 +98,8 @@ func SignupHandler(c *gin.Context) {
 		"message":         "Signup successful",
 		"user_id":         user.ID,
 		"organization_id": org.ID,
+		"role_id":         adminRole.ID,
 	})
-
 }
 
 // LoginRequest represents incoming login data
@@ -108,7 +128,7 @@ func LoginHandler(c *gin.Context) {
 	}
 
 	// Generate JWT Token
-	token, err := utils.GenerateJWT(user.ID, user.Email, user.Role, user.OrganizationID)
+	token, err := utils.GenerateJWT(user.ID, user.Email, user.RoleID, user.OrganizationID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
@@ -117,7 +137,7 @@ func LoginHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"access_token": token,
 		"user_id":      user.ID,
-		"role":         user.Role,
+		"role":         user.RoleID,
 		"organization": user.OrganizationID,
 	})
 }
@@ -159,10 +179,11 @@ func InviteHandler(c *gin.Context) {
 	// Generate unique token for invite
 	inviteToken := utils.GenerateRandomToken(32)
 
+	// In InviteHandler, set RoleID to an empty string or add a TODO for role lookup
 	invite := models.Invite{
 		Email:          req.Email,
 		OrganizationID: inviterOrgID.(string),
-		Role:           req.Role,
+		RoleID:         "", // TODO: Lookup role ID by name and organization
 		Token:          inviteToken,
 		Expiry:         time.Now().Add(48 * time.Hour), // 2-day expiry
 		IsAccepted:     false,
@@ -211,7 +232,7 @@ func ValidateInviteHandler(c *gin.Context) {
 		"valid":           true,
 		"email":           invite.Email,
 		"organization_id": invite.OrganizationID,
-		"role":            invite.Role,
+		"role_id":         invite.RoleID, // Changed from invite.Role to invite.RoleID
 	})
 }
 
@@ -255,7 +276,7 @@ func AcceptInviteHandler(c *gin.Context) {
 	user := models.User{
 		Email:          invite.Email,
 		PasswordHash:   hashedPassword,
-		Role:           invite.Role,
+		RoleID:         invite.RoleID, // Changed from invite.Role to invite.RoleID
 		OrganizationID: invite.OrganizationID,
 		CreatedAt:      time.Now(),
 	}

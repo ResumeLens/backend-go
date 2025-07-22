@@ -31,3 +31,7 @@ config.env
 # Editor/IDE
 # .idea/
 # .vscode/
+
+credentials.json
+.DS_Store
+internal/.DS_Store
