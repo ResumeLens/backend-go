@@ -43,17 +43,11 @@ func migrateDatabase() {
 	fmt.Println("Database migrated successfully.")
 }
 
-// CheckUserPermission checks if a user has a specific permission based on their role.
-func CheckUserPermission(userID string, permission string) (bool, error) {
-	// Fetch the user
-	var user models.User
-	if err := DB.First(&user, "id = ?", userID).Error; err != nil {
-		return false, err
-	}
-
+// CheckRolePermission checks if a role has a specific permission.
+func CheckRolePermission(roleID string, permission string) (bool, error) {
 	// Fetch the role
 	var role models.Role
-	if err := DB.First(&role, "id = ?", user.RoleID).Error; err != nil {
+	if err := DB.First(&role, "id = ?", roleID).Error; err != nil {
 		return false, err
 	}
 
