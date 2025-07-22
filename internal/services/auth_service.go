@@ -26,9 +26,18 @@ type SignupRequest struct {
 }
 
 func (s *AuthService) Signup(req SignupRequest) (gin.H, int) {
+	// Check if user exists first
 	var existingUser models.User
 	if err := db.DB.Where("email = ?", req.Email).First(&existingUser).Error; err == nil {
 		return gin.H{"error": "Email already registered"}, http.StatusConflict
+	}
+
+	// Check if org exists first
+	var existingOrg models.Organization
+	if err := db.DB.Where("name = ?", req.OrganizationName).First(&existingOrg).Error; err == nil {
+		return gin.H{"error": "Organization already exists. Please contact your admin or use an invite."}, http.StatusConflict
+	} else if err.Error() != "record not found" {
+		return gin.H{"error": "Database error while checking organization"}, http.StatusInternalServerError
 	}
 
 	hashedPassword, err := utils.HashPassword(req.Password)
@@ -36,26 +45,9 @@ func (s *AuthService) Signup(req SignupRequest) (gin.H, int) {
 		return gin.H{"error": "Failed to hash password"}, http.StatusInternalServerError
 	}
 
-	user := models.User{
-		Email:        req.Email,
-		PasswordHash: hashedPassword,
-		Role:         "admin",
-		CreatedAt:    time.Now(),
-	}
-	if err := db.DB.Create(&user).Error; err != nil {
-		return gin.H{"error": "Failed to create user"}, http.StatusInternalServerError
-	}
-
-	var org models.Organization
-	if err := db.DB.Where("name = ?", req.OrganizationName).First(&org).Error; err == nil {
-		return gin.H{"error": "Organization already exists. Please contact your admin or use an invite."}, http.StatusConflict
-	} else if err.Error() != "record not found" {
-		return gin.H{"error": "Database error while checking organization"}, http.StatusInternalServerError
-	}
-
-	org = models.Organization{
+	org := models.Organization{
 		Name:        req.OrganizationName,
-		CreatedByID: &user.ID,
+		CreatedByID: nil, // will update after user is created
 		CreatedAt:   time.Now(),
 	}
 
@@ -63,14 +55,42 @@ func (s *AuthService) Signup(req SignupRequest) (gin.H, int) {
 		return gin.H{"error": "Failed to create organization"}, http.StatusInternalServerError
 	}
 
-	if err := db.DB.Model(&user).Update("organization_id", org.ID).Error; err != nil {
-		return gin.H{"error": "Failed to update user with organization"}, http.StatusInternalServerError
+	// Create admin role for this org
+	adminRole := models.Role{
+		Name:                "admin",
+		OrganizationID:      org.ID,
+		HomePermission:      true,
+		CreateJobPermission: true,
+		ViewJobPermission:   true,
+		IamPermission:       true,
+		CreatedAt:           time.Now(),
+	}
+	if err := db.DB.Create(&adminRole).Error; err != nil {
+		return gin.H{"error": "Failed to create admin role"}, http.StatusInternalServerError
+	}
+
+	// Now create the user and assign the admin role
+	user := models.User{
+		Email:          req.Email,
+		PasswordHash:   hashedPassword,
+		RoleID:         adminRole.ID,
+		OrganizationID: org.ID,
+		CreatedAt:      time.Now(),
+	}
+	if err := db.DB.Create(&user).Error; err != nil {
+		return gin.H{"error": "Failed to create user"}, http.StatusInternalServerError
+	}
+
+	// Update org with created_by
+	if err := db.DB.Model(&org).Update("created_by", user.ID).Error; err != nil {
+		return gin.H{"error": "Failed to update organization with creator"}, http.StatusInternalServerError
 	}
 
 	return gin.H{
-		"message":      "Signup successful",
-		"user":         user,
-		"organization": org,
+		"message":         "Signup successful",
+		"user_id":         user.ID,
+		"organization_id": org.ID,
+		"role_id":         adminRole.ID,
 	}, http.StatusCreated
 }
 
@@ -89,7 +109,7 @@ func (s *AuthService) Login(req LoginRequest) (gin.H, int) {
 		return gin.H{"error": "Invalid email or password"}, http.StatusUnauthorized
 	}
 
-	token, err := utils.GenerateJWT(user.ID, user.Email, user.Role, user.OrganizationID)
+	token, err := utils.GenerateJWT(user.ID, user.Email, user.RoleID, user.OrganizationID)
 	if err != nil {
 		return gin.H{"error": "Failed to generate token"}, http.StatusInternalServerError
 	}
@@ -97,14 +117,14 @@ func (s *AuthService) Login(req LoginRequest) (gin.H, int) {
 	return gin.H{
 		"access_token": token,
 		"user_id":      user.ID,
-		"role":         user.Role,
+		"role":         user.RoleID,
 		"organization": user.OrganizationID,
 	}, http.StatusOK
 }
 
 type InviteRequest struct {
-	Email string `json:"email" binding:"required,email"`
-	Role  string `json:"role" binding:"required"`
+	Email  string `json:"email" binding:"required,email"`
+	RoleID string `json:"role_id" binding:"required"`
 }
 
 func (s *AuthService) Invite(req InviteRequest, inviterRole, inviterOrgID string) (gin.H, int) {
@@ -122,7 +142,7 @@ func (s *AuthService) Invite(req InviteRequest, inviterRole, inviterOrgID string
 	invite := models.Invite{
 		Email:          req.Email,
 		OrganizationID: inviterOrgID,
-		Role:           req.Role,
+		RoleID:         req.RoleID,
 		Token:          inviteToken,
 		Expiry:         time.Now().Add(48 * time.Hour),
 		IsAccepted:     false,
@@ -162,7 +182,7 @@ func (s *AuthService) ValidateInvite(token string) (gin.H, int) {
 		"valid":           true,
 		"email":           invite.Email,
 		"organization_id": invite.OrganizationID,
-		"role":            invite.Role,
+		"role_id":         invite.RoleID,
 	}, http.StatusOK
 }
 
@@ -194,7 +214,7 @@ func (s *AuthService) AcceptInvite(req AcceptInviteRequest) (gin.H, int) {
 	user := models.User{
 		Email:          invite.Email,
 		PasswordHash:   hashedPassword,
-		Role:           invite.Role,
+		RoleID:         invite.RoleID,
 		OrganizationID: invite.OrganizationID,
 		CreatedAt:      time.Now(),
 	}

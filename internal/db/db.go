@@ -27,15 +27,7 @@ func ConnectDatabase(cfg *config.Config) {
 }
 
 func migrateDatabase() {
-	err := DB.AutoMigrate(
-		&models.User{},
-		&models.Organization{},
-		&models.Invite{},
-		&models.Candidate{},
-		&models.JobApplication{},
-		&models.Job{},
-		&models.JobAnalytics{},
-	)
+	err := DB.AutoMigrate(&models.User{}, &models.Organization{}, &models.Invite{}, &models.Candidate{}, &models.JobApplication{}, &models.Role{}, &models.Job{}, &models.JobAnalytics{})
 	if err != nil {
 		log.Fatalf("Database migration failed: %v", err)
 	}
