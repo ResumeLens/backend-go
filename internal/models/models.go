@@ -10,7 +10,7 @@ type User struct {
 	ID             string `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	Email          string `gorm:"unique;not null"`
 	PasswordHash   string `gorm:"not null"`
-	Role           string `gorm:"not null"`
+	RoleID         string `gorm:"not null"`
 	OrganizationID string `gorm:"not null"`
 	CreatedAt      time.Time
 	UpdatedAt      time.Time `gorm:"autoUpdateTime"`
@@ -28,7 +28,7 @@ type Invite struct {
 	UserID         *string `gorm:"type:uuid"`
 	Email          string  `gorm:"not null"`
 	OrganizationID string  `gorm:"not null"`
-	Role           string  `gorm:"not null"`
+	RoleID         string  `gorm:"not null"`
 	Token          string  `gorm:"unique;not null"`
 	Expiry         time.Time
 	IsAccepted     bool
@@ -56,4 +56,15 @@ type JobApplication struct {
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+type Role struct {
+	ID                  string `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
+	Name                string `gorm:"not null"`
+	CreatedAt           time.Time
+	OrganizationID      string `gorm:"not null"`
+	HomePermission      bool   `gorm:"not null;default:false"`
+	CreateJobPermission bool   `gorm:"not null;default:false"`
+	ViewJobPermission   bool   `gorm:"not null;default:false"`
+	IamPermission       bool   `gorm:"not null;default:false"`
 }
