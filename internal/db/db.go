@@ -58,13 +58,13 @@ func CheckUserPermission(userID string, permission string) (bool, error) {
 	}
 
 	switch permission {
-	case "home":
+	case "HomePermission":
 		return role.HomePermission, nil
-	case "create_job":
+	case "CreateJobPermission":
 		return role.CreateJobPermission, nil
-	case "view_job":
+	case "ViewJobPermission":
 		return role.ViewJobPermission, nil
-	case "iam":
+	case "IamPermission":
 		return role.IamPermission, nil
 	default:
 		return false, nil
