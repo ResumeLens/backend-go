@@ -114,11 +114,18 @@ func (s *AuthService) Login(req LoginRequest) (gin.H, int) {
 		return gin.H{"error": "Failed to generate token"}, http.StatusInternalServerError
 	}
 
+	permissions := make(map[string]bool)
+	permissions["HomePermission"], _ = db.CheckRolePermission(user.RoleID, "HomePermission")
+	permissions["CreateJobPermission"], _ = db.CheckRolePermission(user.RoleID, "CreateJobPermission")
+	permissions["ViewJobPermission"], _ = db.CheckRolePermission(user.RoleID, "ViewJobPermission")
+	permissions["IamPermission"], _ = db.CheckRolePermission(user.RoleID, "IamPermission")
+
 	return gin.H{
 		"access_token": token,
 		"user_id":      user.ID,
 		"role":         user.RoleID,
 		"organization": user.OrganizationID,
+		"permissions":  permissions,
 	}, http.StatusOK
 }
 
