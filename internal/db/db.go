@@ -42,25 +42,3 @@ func migrateDatabase() {
 	}
 	fmt.Println("Database migrated successfully.")
 }
-
-// CheckRolePermission checks if a role has a specific permission.
-func CheckRolePermission(roleID string, permission string) (bool, error) {
-	// Fetch the role
-	var role models.Role
-	if err := DB.First(&role, "id = ?", roleID).Error; err != nil {
-		return false, err
-	}
-
-	switch permission {
-	case "HomePermission":
-		return role.HomePermission, nil
-	case "CreateJobPermission":
-		return role.CreateJobPermission, nil
-	case "ViewJobPermission":
-		return role.ViewJobPermission, nil
-	case "IamPermission":
-		return role.IamPermission, nil
-	default:
-		return false, nil
-	}
-}

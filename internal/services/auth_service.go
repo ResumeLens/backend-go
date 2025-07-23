@@ -12,11 +12,15 @@ import (
 )
 
 type AuthService struct {
-	config *config.Config
+	config            *config.Config
+	permissionService *PermissionService
 }
 
 func NewAuthService(cfg *config.Config) *AuthService {
-	return &AuthService{config: cfg}
+	return &AuthService{
+		config:            cfg,
+		permissionService: NewPermissionService(),
+	}
 }
 
 type SignupRequest struct {
@@ -114,11 +118,10 @@ func (s *AuthService) Login(req LoginRequest) (gin.H, int) {
 		return gin.H{"error": "Failed to generate token"}, http.StatusInternalServerError
 	}
 
-	permissions := make(map[string]bool)
-	permissions["HomePermission"], _ = db.CheckRolePermission(user.RoleID, "HomePermission")
-	permissions["CreateJobPermission"], _ = db.CheckRolePermission(user.RoleID, "CreateJobPermission")
-	permissions["ViewJobPermission"], _ = db.CheckRolePermission(user.RoleID, "ViewJobPermission")
-	permissions["IamPermission"], _ = db.CheckRolePermission(user.RoleID, "IamPermission")
+	permissions, err := s.permissionService.GetUserPermissions(user.RoleID)
+	if err != nil {
+		return gin.H{"error": "Failed to get user permissions"}, http.StatusInternalServerError
+	}
 
 	return gin.H{
 		"access_token": token,
