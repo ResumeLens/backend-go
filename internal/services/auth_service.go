@@ -123,11 +123,16 @@ func (s *AuthService) Login(req LoginRequest) (gin.H, int) {
 		return gin.H{"error": "Failed to get user permissions"}, http.StatusInternalServerError
 	}
 
+	var org models.Organization
+	if err := db.DB.Where("id = ?", user.OrganizationID).First(&org).Error; err != nil {
+		return gin.H{"error": "Failed to get organization"}, http.StatusInternalServerError
+	}
+
 	return gin.H{
 		"access_token": token,
-		"user_id":      user.ID,
+		"user":         user,
 		"role":         user.RoleID,
-		"organization": user.OrganizationID,
+		"organization": org,
 		"permissions":  permissions,
 	}, http.StatusOK
 }
