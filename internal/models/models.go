@@ -16,6 +16,13 @@ type User struct {
 	UpdatedAt      time.Time `gorm:"autoUpdateTime"`
 }
 
+type StrippedUser struct {
+	ID           string `json:"id"`
+	Email        string `json:"email"`
+	Organization string `json:"organization"`
+	Role         string `json:"role"`
+}
+
 type Organization struct {
 	ID          string  `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	Name        string  `gorm:"unique;not null"`
