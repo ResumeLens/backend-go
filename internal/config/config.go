@@ -21,6 +21,8 @@ type Config struct {
 	SMTPUser       string `mapstructure:"SMTP_USER"`
 	SMTPPass       string `mapstructure:"SMTP_PASS"`
 	SMTPSenderName string `mapstructure:"SMTP_SENDER_NAME"`
+
+	PythonBackendURL string `mapstructure:"PYTHON_BACKEND_URL"`
 }
 
 func LoadConfig() (*Config, error) {

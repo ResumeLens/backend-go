@@ -43,14 +43,25 @@ func SetupRouter(
 		api.POST("/accept-invite", authHandler.AcceptInvite)
 		api.POST("/refresh-token", authHandler.RefreshToken)
 
+		api.GET("/jobs/:id", jobHostingHandler.GetJob)
+
 		secured := api.Group("/")
 		secured.Use(middleware.JWTAuthMiddleware())
 		{
 			secured.POST("/invite", authHandler.Invite)
 			secured.POST("/upload-resume", jobApplicationHandler.UploadResume)
 			secured.POST("/upload-cover-letter", jobApplicationHandler.UploadCoverLetter)
-			secured.POST("/job", jobHostingHandler.CreateJob)
-			secured.GET("/job/:id", jobHostingHandler.GetJob)
+
+			secured.POST("/jobs", jobHostingHandler.CreateJob)
+			secured.GET("/jobs", jobHostingHandler.GetJobsForOrganization)
+
+			orgProtected := secured.Group("/jobs/:id")
+			orgProtected.Use(middleware.OrganizationAccessMiddleware())
+			{
+				orgProtected.PUT("", jobHostingHandler.UpdateJob)
+				orgProtected.DELETE("", jobHostingHandler.DeleteJob)
+				orgProtected.GET("/applications", jobHostingHandler.GetJobApplications)
+			}
 		}
 	}
 

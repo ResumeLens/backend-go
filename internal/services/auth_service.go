@@ -118,22 +118,28 @@ func (s *AuthService) Login(req LoginRequest) (gin.H, int) {
 		return gin.H{"error": "Failed to generate token"}, http.StatusInternalServerError
 	}
 
-	permissions, err := s.permissionService.GetUserPermissions(user.RoleID)
-	if err != nil {
-		return gin.H{"error": "Failed to get user permissions"}, http.StatusInternalServerError
-	}
-
 	var org models.Organization
 	if err := db.DB.Where("id = ?", user.OrganizationID).First(&org).Error; err != nil {
 		return gin.H{"error": "Failed to get organization"}, http.StatusInternalServerError
 	}
 
+	role := models.Role{}
+	if err := db.DB.Where("id = ?", user.RoleID).First(&role).Error; err != nil {
+		return gin.H{"error": "Failed to get role"}, http.StatusInternalServerError
+	}
+
+	strippedUser := models.StrippedUser{
+		ID:           user.ID,
+		Email:        user.Email,
+		Organization: org.Name,
+		Role:         role.Name,
+	}
+
 	return gin.H{
 		"access_token": token,
-		"user":         user,
-		"role":         user.RoleID,
+		"user":         strippedUser,
+		"role":         role,
 		"organization": org,
-		"permissions":  permissions,
 	}, http.StatusOK
 }
 
